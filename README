@@ -1,0 +1,56 @@
+How to deploy the website.
+1. clone the repository to the server.
+2. on the server, install mongodb, nodejs, nginx, and pm2
+3. cd into frontend
+  a. type "npm install"
+  b. type "npm run build"
+  c. copy all files in ./build to /var/www/html
+4. cd into backend
+  a. delete ./node_modules
+  b. type "npm install"
+  c. run the backend with "node main.js"
+5. For Centos, cd into /etc/nginx
+  1. Change the nginx.conf
+  2. Change the whole server bracket as follow, make sure the server_name is changed accordingly
+  
+  server {
+        listen       80 default_server;
+        listen       [::]:80 default_server;
+        server_name  nobug.cs.vt.edu;
+        root         /var/www/html;
+
+        # Load configuration files for the default server block.
+        include /etc/nginx/default.d/*.conf;
+
+
+        location /api/ {
+                proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        }
+
+        location / {
+                try_files $uri $uri/ /index.html;
+        }
+
+        error_page 404 /404.html;
+            location = /40x.html {
+        }
+   3. "sudo systemctl restart nginx" to restart the server
+   4. You should see the website's frontend running now.
+6. Now to create a user
+  a. send a POST request to "{your domain}"/api/users/register with body with "username: {your_desired_username}" and "password: {your_desired_password}"
+  b. To set the secondary password for admin powers, send a post request with username being thesecretuser and the desired password like following.
+  c. send a POST request to "{your domain}"/api/users/register with body with "username: thesecretuser" and "password: {your_desired_password}"
+  d. turn off the backend, cd into ./backend/api/
+    a.comment out the /register route like following because we don't want people to register for users.
+    //userrouter.post('/register', urlencodedParser, async (req, res) => {
+    //    admin.addAdmin(req.body)
+    //        .then(() => res.json({}))
+    //        .catch(err => res.status(400).json({ message: err }));
+    //});
+7. start the backend with "pm2 start main.js"
+8. Done
